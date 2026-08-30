@@ -12,7 +12,7 @@ export async function doneCommand(ctx: CommandContext<Context>) {
   }
 
   if (/^\d+$/.test(arg)) {
-    const task = await completeTask(Number(arg));
+    const task = await completeTask(Number(arg), chatId);
     if (!task) {
       await ctx.reply("این تسک پیدا نشد یا قبلاً انجام شده.");
       return;
@@ -36,6 +36,6 @@ export async function doneCommand(ctx: CommandContext<Context>) {
     return;
   }
 
-  const task = await completeTask(rows[0].id);
+  const task = await completeTask(rows[0].id, chatId);
   await ctx.reply(`✅ انجام شد — #${task!.id} ${task!.title}`);
 }

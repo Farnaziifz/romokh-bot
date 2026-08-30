@@ -2,26 +2,23 @@ import type { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 import type { Context } from "grammy";
 import { pool } from "../lib/db.js";
 import type { Priority, RecurrenceRule, Task } from "../lib/db.js";
-import { buildCategoryPicker, buildPriorityPicker, buildRecurrencePicker } from "../lib/pickers.js";
+import { buildPriorityPicker, buildRecurrencePicker } from "../lib/pickers.js";
 import { taskLine } from "../lib/format.js";
 import { pickDateTime } from "./pickDateTime.js";
+import { pickCategory } from "./pickCategory.js";
 
 type MyContext = ConversationFlavor<Context>;
 type MyConversation = Conversation<MyContext, Context>;
 
 export async function addTaskConversation(conversation: MyConversation, ctx: Context) {
+  const chatId = ctx.chat!.id.toString();
+
   await ctx.reply("عنوان تسک رو بفرست:");
   const titleCtx = await conversation.waitFor("message:text");
   const title = titleCtx.message.text.trim();
 
   const deadline = await pickDateTime(conversation, ctx);
-
-  const catMsg = await ctx.reply("دسته‌بندی؟", { reply_markup: buildCategoryPicker() });
-  const catCq = await conversation.waitForCallbackQuery(/^pick:cat:/);
-  const catValue = catCq.callbackQuery.data.replace("pick:cat:", "");
-  const category = catValue === "__none__" ? null : catValue;
-  await catCq.answerCallbackQuery();
-  await ctx.api.editMessageText(catMsg.chat.id, catMsg.message_id, `دسته: ${category ?? "بدون دسته"}`);
+  const category = await pickCategory(conversation, ctx, chatId);
 
   const prioMsg = await ctx.reply("اولویت؟", { reply_markup: buildPriorityPicker() });
   const prioCq = await conversation.waitForCallbackQuery(/^pick:prio:/);
@@ -41,7 +38,6 @@ export async function addTaskConversation(conversation: MyConversation, ctx: Con
     `تکرار: ${recurrenceRule === "daily" ? "روزانه" : recurrenceRule === "weekly" ? "هفتگی" : "نه"}`
   );
 
-  const chatId = ctx.chat!.id.toString();
   const { rows } = await pool.query<Task>(
     `INSERT INTO tasks (chat_id, title, due_at, category, priority, is_recurring, recurrence_rule)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,

@@ -38,8 +38,8 @@ async function renderTasks(ctx: Context, chatId: string, tasks: Task[], emptyMes
   }
 }
 
-export async function listToday(ctx: CommandContext<Context>) {
-  const chatId = ctx.chat.id.toString();
+export async function listToday(ctx: Context) {
+  const chatId = ctx.chat!.id.toString();
   const settings = await getSettings(chatId);
   const dayStart = startOfLocalDay(new Date(), settings.timezone);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
@@ -49,8 +49,8 @@ export async function listToday(ctx: CommandContext<Context>) {
   await renderTasks(ctx, chatId, filtered, "برای امروز تسکی نداری 🎉");
 }
 
-export async function listWeek(ctx: CommandContext<Context>) {
-  const chatId = ctx.chat.id.toString();
+export async function listWeek(ctx: Context) {
+  const chatId = ctx.chat!.id.toString();
   const settings = await getSettings(chatId);
   const dayStart = startOfLocalDay(new Date(), settings.timezone);
   const weekEnd = new Date(dayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -60,8 +60,8 @@ export async function listWeek(ctx: CommandContext<Context>) {
   await renderTasks(ctx, chatId, filtered, "برای این هفته تسکی نداری 🎉");
 }
 
-export async function listAll(ctx: CommandContext<Context>) {
-  const chatId = ctx.chat.id.toString();
+export async function listAll(ctx: Context) {
+  const chatId = ctx.chat!.id.toString();
   const tasks = await fetchOpenTasks(chatId);
   await renderTasks(ctx, chatId, tasks, "تسک بازی نداری 🎉");
 }

@@ -1,10 +1,10 @@
 import { pool } from "./db.js";
 import type { Task } from "./db.js";
 
-export async function completeTask(taskId: number): Promise<Task | null> {
+export async function completeTask(taskId: number, chatId: string): Promise<Task | null> {
   const { rows } = await pool.query<Task>(
-    "UPDATE tasks SET done = TRUE, completed_at = now() WHERE id = $1 AND done = FALSE RETURNING *",
-    [taskId]
+    "UPDATE tasks SET done = TRUE, completed_at = now() WHERE id = $1 AND chat_id = $2 AND done = FALSE RETURNING *",
+    [taskId, chatId]
   );
   const task = rows[0];
   if (!task) return null;

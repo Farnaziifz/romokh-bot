@@ -14,6 +14,7 @@
     "@grammyjs/conversations": "^2.1.1",
     "dotenv": "^16.4.5",
     "grammy": "^1.28.0",
+    "jalaali-js": "^2.0.1",
     "node-cron": "^3.0.3",
     "pg": "^8.12.0"
   },

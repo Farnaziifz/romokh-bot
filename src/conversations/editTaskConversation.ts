@@ -3,9 +3,10 @@ import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import { pool } from "../lib/db.js";
 import type { Priority, Task } from "../lib/db.js";
-import { buildCategoryPicker, buildPriorityPicker } from "../lib/pickers.js";
+import { buildPriorityPicker } from "../lib/pickers.js";
 import { taskLine } from "../lib/format.js";
 import { pickDateTime } from "./pickDateTime.js";
+import { pickCategory } from "./pickCategory.js";
 
 type MyContext = ConversationFlavor<Context>;
 type MyConversation = Conversation<MyContext, Context>;
@@ -52,29 +53,24 @@ export async function editTaskConversation(conversation: MyConversation, ctx: Co
   if (field === "title") {
     await ctx.reply("عنوان جدید رو بفرست:");
     const msgCtx = await conversation.waitFor("message:text");
-    const { rows: r } = await pool.query<Task>("UPDATE tasks SET title = $1 WHERE id = $2 RETURNING *", [
-      msgCtx.message.text.trim(),
-      id,
-    ]);
+    const { rows: r } = await pool.query<Task>(
+      "UPDATE tasks SET title = $1 WHERE id = $2 AND chat_id = $3 RETURNING *",
+      [msgCtx.message.text.trim(), id, chatId]
+    );
     updated = r[0];
   } else if (field === "date") {
     const deadline = await pickDateTime(conversation, ctx);
-    const { rows: r } = await pool.query<Task>("UPDATE tasks SET due_at = $1 WHERE id = $2 RETURNING *", [
-      deadline,
-      id,
-    ]);
+    const { rows: r } = await pool.query<Task>(
+      "UPDATE tasks SET due_at = $1 WHERE id = $2 AND chat_id = $3 RETURNING *",
+      [deadline, id, chatId]
+    );
     updated = r[0];
   } else if (field === "cat") {
-    const catMsg = await ctx.reply("دسته جدید؟", { reply_markup: buildCategoryPicker() });
-    const catCq = await conversation.waitForCallbackQuery(/^pick:cat:/);
-    const catValue = catCq.callbackQuery.data.replace("pick:cat:", "");
-    await catCq.answerCallbackQuery();
-    const category = catValue === "__none__" ? null : catValue;
-    await ctx.api.editMessageText(catMsg.chat.id, catMsg.message_id, `دسته: ${category ?? "بدون دسته"}`);
-    const { rows: r } = await pool.query<Task>("UPDATE tasks SET category = $1 WHERE id = $2 RETURNING *", [
-      category,
-      id,
-    ]);
+    const category = await pickCategory(conversation, ctx, chatId);
+    const { rows: r } = await pool.query<Task>(
+      "UPDATE tasks SET category = $1 WHERE id = $2 AND chat_id = $3 RETURNING *",
+      [category, id, chatId]
+    );
     updated = r[0];
   } else {
     const prioMsg = await ctx.reply("اولویت جدید؟", { reply_markup: buildPriorityPicker() });
@@ -83,10 +79,10 @@ export async function editTaskConversation(conversation: MyConversation, ctx: Co
     await prioCq.answerCallbackQuery();
     const priority = (prioValue === "__none__" ? null : prioValue) as Priority | null;
     await ctx.api.editMessageText(prioMsg.chat.id, prioMsg.message_id, `اولویت: ${priority ?? "بدون اولویت"}`);
-    const { rows: r } = await pool.query<Task>("UPDATE tasks SET priority = $1 WHERE id = $2 RETURNING *", [
-      priority,
-      id,
-    ]);
+    const { rows: r } = await pool.query<Task>(
+      "UPDATE tasks SET priority = $1 WHERE id = $2 AND chat_id = $3 RETURNING *",
+      [priority, id, chatId]
+    );
     updated = r[0];
   }
 

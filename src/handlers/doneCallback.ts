@@ -7,7 +7,8 @@ export async function handleDoneCallback(ctx: Context) {
   if (!m) return;
 
   const id = Number(m[1]);
-  const task = await completeTask(id);
+  const chatId = ctx.chat!.id.toString();
+  const task = await completeTask(id, chatId);
 
   if (!task) {
     await ctx.answerCallbackQuery({ text: "این تسک قبلاً انجام شده بود." });

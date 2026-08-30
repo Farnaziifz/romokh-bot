@@ -1,19 +1,21 @@
 import type { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 import type { Context } from "grammy";
-import { buildCalendar, buildHourPicker, buildMinutePicker } from "../lib/calendar.js";
+import { jalaaliToDateObject } from "jalaali-js";
+import { buildCalendar, buildHourPicker, buildMinutePicker, todayJalaali } from "../lib/calendar.js";
+import { toFaDigits } from "../lib/farsiDigits.js";
 
 type MyContext = ConversationFlavor<Context>;
 type MyConversation = Conversation<MyContext, Context>;
 
 export async function pickDateTime(conversation: MyConversation, ctx: Context): Promise<Date | null> {
-  const now = new Date();
-  let year = now.getFullYear();
-  let month = now.getMonth();
+  const today = todayJalaali();
+  let jy = today.jy;
+  let jm = today.jm;
   const dateMsg = await ctx.reply("تاریخ رو انتخاب کن (یا رد کن اگه مهلت نداره):", {
-    reply_markup: buildCalendar(year, month).row().text("بدون تاریخ", "cal:skip"),
+    reply_markup: buildCalendar(jy, jm).row().text("بدون تاریخ", "cal:skip"),
   });
 
-  let pickedDate: string | null = null;
+  let pickedDate: string | null = null; // "jy-jm-jd"
   let dateSkipped = false;
   while (!pickedDate && !dateSkipped) {
     const cq = await conversation.waitForCallbackQuery(/^cal:(nav|pick|ignore|skip)/);
@@ -34,11 +36,11 @@ export async function pickDateTime(conversation: MyConversation, ctx: Context): 
     if (data.startsWith("cal:nav:")) {
       const [, , ym] = data.split(":");
       const [y, m] = ym.split("-").map(Number);
-      year = y;
-      month = m;
+      jy = y;
+      jm = m;
       await cq.answerCallbackQuery();
       await cq.api.editMessageReplyMarkup(dateMsg.chat.id, dateMsg.message_id, {
-        reply_markup: buildCalendar(year, month).row().text("بدون تاریخ", "cal:skip"),
+        reply_markup: buildCalendar(jy, jm).row().text("بدون تاریخ", "cal:skip"),
       });
       continue;
     }
@@ -46,7 +48,11 @@ export async function pickDateTime(conversation: MyConversation, ctx: Context): 
     if (data.startsWith("cal:pick:")) {
       pickedDate = data.replace("cal:pick:", "");
       await cq.answerCallbackQuery();
-      await ctx.api.editMessageText(dateMsg.chat.id, dateMsg.message_id, `تاریخ: ${pickedDate}`);
+      await ctx.api.editMessageText(
+        dateMsg.chat.id,
+        dateMsg.message_id,
+        `تاریخ: ${toFaDigits(pickedDate.replace(/-/g, "/"))}`
+      );
     }
   }
 
@@ -64,13 +70,13 @@ export async function pickDateTime(conversation: MyConversation, ctx: Context): 
   const [, , h, min] = minCq.callbackQuery.data.split(":");
   await minCq.answerCallbackQuery();
 
-  const [y, mo, d] = pickedDate.split("-").map(Number);
-  const deadline = new Date(y, mo - 1, d, Number(h), Number(min));
+  const [py, pm, pd] = pickedDate.split("-").map(Number);
+  const deadline = jalaaliToDateObject(py, pm, pd, Number(h), Number(min));
 
   await ctx.api.editMessageText(
     hourMsg.chat.id,
     hourMsg.message_id,
-    `ساعت: ${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`
+    `ساعت: ${toFaDigits(`${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`)}`
   );
 
   return deadline;

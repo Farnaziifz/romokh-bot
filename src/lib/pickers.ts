@@ -1,10 +1,9 @@
 import { InlineKeyboard } from "grammy";
 
-export const CATEGORIES = ["Orchid", "Divine Style", "Mont Valier", "Centropy", "Personal"];
-
-export function buildCategoryPicker(): InlineKeyboard {
+export function buildCategoryPicker(existingCategories: string[]): InlineKeyboard {
   const kb = new InlineKeyboard();
-  for (const cat of CATEGORIES) kb.text(cat, `pick:cat:${cat}`).row();
+  existingCategories.forEach((cat, i) => kb.text(cat, `pick:cat:idx:${i}`).row());
+  kb.text("➕ دسته جدید", "pick:cat:__new__").row();
   kb.text("بدون دسته", "pick:cat:__none__");
   return kb;
 }

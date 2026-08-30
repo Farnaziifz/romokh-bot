@@ -1,4 +1,6 @@
+import { toJalaali } from "jalaali-js";
 import type { Task } from "./db.js";
+import { toFaDigits } from "./farsiDigits.js";
 
 const REMINDER_ESCALATE_THRESHOLD = 3;
 
@@ -10,7 +12,8 @@ const PRIORITY_EMOJI: Record<string, string> = {
 
 export function formatDeadline(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const { jy, jm, jd } = toJalaali(d);
+  return toFaDigits(`${jy}/${pad(jm)}/${pad(jd)} ${pad(d.getHours())}:${pad(d.getMinutes())}`);
 }
 
 export function taskLine(task: Task, opts: { isMit?: boolean } = {}): string {

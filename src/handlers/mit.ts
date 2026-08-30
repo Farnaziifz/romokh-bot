@@ -1,4 +1,4 @@
-import type { CommandContext, Context } from "grammy";
+import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import { pool } from "../lib/db.js";
 import type { Task } from "../lib/db.js";
@@ -6,14 +6,17 @@ import { getSettings } from "../lib/settings.js";
 import { getMitTaskId, setMit } from "../lib/mit.js";
 import { startOfLocalDay } from "../lib/time.js";
 
-export async function mitCommand(ctx: CommandContext<Context>) {
-  const chatId = ctx.chat.id.toString();
+export async function mitCommand(ctx: Context) {
+  const chatId = ctx.chat!.id.toString();
   const settings = await getSettings(chatId);
   const now = new Date();
 
   const currentId = await getMitTaskId(chatId, now, settings.timezone);
   if (currentId) {
-    const { rows } = await pool.query<Task>("SELECT * FROM tasks WHERE id = $1", [currentId]);
+    const { rows } = await pool.query<Task>("SELECT * FROM tasks WHERE id = $1 AND chat_id = $2", [
+      currentId,
+      chatId,
+    ]);
     const task = rows[0];
     if (task && !task.done) {
       await ctx.reply(`⭐ مهم‌ترین تسک امروز:\n#${task.id} — ${task.title}`);
@@ -47,10 +50,17 @@ export async function handleMitCallback(ctx: Context) {
 
   const taskId = Number(m[1]);
   const chatId = ctx.chat!.id.toString();
+
+  const { rows } = await pool.query<Task>("SELECT * FROM tasks WHERE id = $1 AND chat_id = $2", [taskId, chatId]);
+  const task = rows[0];
+  if (!task) {
+    await ctx.answerCallbackQuery({ text: "این تسک پیدا نشد." });
+    return;
+  }
+
   const settings = await getSettings(chatId);
   await setMit(chatId, taskId, new Date(), settings.timezone);
 
-  const { rows } = await pool.query<Task>("SELECT * FROM tasks WHERE id = $1", [taskId]);
   await ctx.answerCallbackQuery({ text: "ثبت شد ⭐" });
-  await ctx.editMessageText(`⭐ مهم‌ترین تسک امروز:\n#${taskId} — ${rows[0]?.title ?? ""}`);
+  await ctx.editMessageText(`⭐ مهم‌ترین تسک امروز:\n#${taskId} — ${task.title}`);
 }
