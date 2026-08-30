@@ -1,5 +1,5 @@
 import type { Context } from "grammy";
-import { pool } from "../lib/db.js";
+import { completeTask } from "../lib/completeTask.js";
 
 export async function handleDoneCallback(ctx: Context) {
   const data = ctx.callbackQuery?.data;
@@ -7,16 +7,13 @@ export async function handleDoneCallback(ctx: Context) {
   if (!m) return;
 
   const id = Number(m[1]);
-  const { rowCount } = await pool.query(
-    "UPDATE tasks SET done = TRUE WHERE id = $1 AND done = FALSE",
-    [id]
-  );
+  const task = await completeTask(id);
 
-  if (rowCount === 0) {
+  if (!task) {
     await ctx.answerCallbackQuery({ text: "این تسک قبلاً انجام شده بود." });
     return;
   }
 
   await ctx.answerCallbackQuery({ text: "انجام شد ✅" });
-  await ctx.editMessageText(`✅ انجام شد — #${id}`);
+  await ctx.editMessageText(`✅ انجام شد — #${id} ${task.title}`);
 }
