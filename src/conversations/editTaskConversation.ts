@@ -7,19 +7,31 @@ import { buildPriorityPicker } from "../lib/pickers.js";
 import { taskLine } from "../lib/format.js";
 import { pickDateTime } from "./pickDateTime.js";
 import { pickCategory } from "./pickCategory.js";
+import { fetchOpenTasks } from "../handlers/listTasks.js";
 
 type MyContext = ConversationFlavor<Context>;
 type MyConversation = Conversation<MyContext, Context>;
 
-export async function editTaskConversation(conversation: MyConversation, ctx: Context) {
-  const arg = ctx.match?.toString().trim();
-  const id = Number(arg);
-  if (!arg || Number.isNaN(id)) {
-    await ctx.reply("شماره تسک رو بنویس: /edit 5");
-    return;
+export async function editTaskConversation(conversation: MyConversation, ctx: Context, presetId?: number) {
+  const chatId = ctx.chat!.id.toString();
+
+  let id: number;
+  if (presetId !== undefined) {
+    id = presetId;
+  } else {
+    const openTasks = await fetchOpenTasks(chatId);
+    if (openTasks.length === 0) {
+      await ctx.reply("تسک بازی نداری.");
+      return;
+    }
+    const kb = new InlineKeyboard();
+    openTasks.forEach((t) => kb.text(`#${t.id} — ${t.title}`.slice(0, 60), `taskedit:${t.id}`).row());
+    await ctx.reply("کدوم تسک رو ویرایش کنم؟", { reply_markup: kb });
+    const pickCq = await conversation.waitForCallbackQuery(/^taskedit:\d+$/);
+    id = Number(pickCq.callbackQuery.data.replace("taskedit:", ""));
+    await pickCq.answerCallbackQuery();
   }
 
-  const chatId = ctx.chat!.id.toString();
   const { rows } = await pool.query<Task>("SELECT * FROM tasks WHERE id = $1 AND chat_id = $2", [id, chatId]);
   const task = rows[0];
   if (!task) {

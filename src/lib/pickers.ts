@@ -17,6 +17,12 @@ export function buildPriorityPicker(): InlineKeyboard {
     .text("بدون اولویت", "pick:prio:__none__");
 }
 
+export function buildCategoryFilterPicker(categories: string[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  categories.forEach((cat) => kb.text(cat, `catpick:${encodeURIComponent(cat)}`).row());
+  return kb;
+}
+
 export function buildRecurrencePicker(): InlineKeyboard {
   return new InlineKeyboard()
     .text("🔁 روزانه", "pick:rec:daily")

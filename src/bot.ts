@@ -7,10 +7,10 @@ import { addTaskConversation } from "./conversations/addTaskConversation.js";
 import { editTaskConversation } from "./conversations/editTaskConversation.js";
 import { settingsConversation } from "./conversations/settingsConversation.js";
 import { quickAdd } from "./handlers/quickAdd.js";
-import { listToday, listWeek, listAll, listByCategory } from "./handlers/listTasks.js";
+import { listToday, listWeek, listAll, listByCategory, handleCategoryFilterCallback } from "./handlers/listTasks.js";
 import { handleDoneCallback } from "./handlers/doneCallback.js";
 import { doneCommand } from "./handlers/doneCommand.js";
-import { deleteCommand, handleUndoCallback } from "./handlers/deleteTask.js";
+import { deleteCommand, handleUndoCallback, handleDeleteButtonCallback } from "./handlers/deleteTask.js";
 import { mitCommand, handleMitCallback } from "./handlers/mit.js";
 import { reportCommand } from "./handlers/report.js";
 import { startScheduler } from "./lib/scheduler.js";
@@ -38,11 +38,11 @@ bot.command("help", (ctx) =>
       "/add متن — اضافه کردن سریع (مثال: خرید نان فردا ساعت ۵)\n" +
       "پیام معمولی هم مثل /add عمل می‌کنه\n" +
       "/addtask — اضافه کردن با تقویم و دسته/اولویت/تکرار\n" +
-      "/today /week /all — لیست تسک‌های باز\n" +
-      "/category نام — فیلتر بر اساس دسته\n" +
-      "/done شماره یا متن — انجام‌شده علامت بزن\n" +
-      "/edit شماره — ویرایش تسک\n" +
-      "/delete شماره — حذف (با ۱۰ ثانیه فرصت برگشت)\n" +
+      "/today /week /all — لیست تسک‌های باز، هر تسک با دکمه‌ی ✅ انجام‌شد / ✏️ ویرایش / 🗑 حذف\n" +
+      "/category — دکمه‌ی دسته‌ها رو نشون می‌ده\n" +
+      "/done — لیست تسک‌ها برای زدن دکمه‌ی انجام‌شد (یا /done شماره یا متن)\n" +
+      "/edit — لیست تسک‌ها برای انتخاب و ویرایش با دکمه (یا /edit شماره)\n" +
+      "/delete — لیست تسک‌ها برای حذف با دکمه (یا /delete شماره)، با ۱۰ ثانیه فرصت برگشت\n" +
       "/mit — مهم‌ترین تسک امروز\n" +
       "/report — گزارش هفتگی دستی\n" +
       "/settings — بازه یادآوری و ساعت سکوت\n\n" +
@@ -57,7 +57,11 @@ bot.command("week", listWeek);
 bot.command("all", listAll);
 bot.command("category", listByCategory);
 bot.command("done", doneCommand);
-bot.command("edit", (ctx) => ctx.conversation.enter("editTask"));
+bot.command("edit", (ctx) => {
+  const arg = ctx.match?.toString().trim();
+  const id = arg && /^\d+$/.test(arg) ? Number(arg) : undefined;
+  return ctx.conversation.enter("editTask", id);
+});
 bot.command("delete", deleteCommand);
 bot.command("mit", mitCommand);
 bot.command("report", reportCommand);
@@ -68,6 +72,13 @@ bot.on("callback_query:data", async (ctx, next) => {
   if (data.startsWith("done:")) return handleDoneCallback(ctx);
   if (data.startsWith("undo:")) return handleUndoCallback(ctx);
   if (data.startsWith("mit:")) return handleMitCallback(ctx);
+  if (data.startsWith("taskdel:")) return handleDeleteButtonCallback(ctx);
+  if (data.startsWith("catpick:")) return handleCategoryFilterCallback(ctx);
+  if (data.startsWith("taskedit:")) {
+    const id = Number(data.replace("taskedit:", ""));
+    await ctx.answerCallbackQuery();
+    return ctx.conversation.enter("editTask", id);
+  }
 
   if (data === "start:add") {
     await ctx.answerCallbackQuery();
