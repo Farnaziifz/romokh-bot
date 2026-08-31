@@ -6,7 +6,7 @@ import { taskLine } from "../lib/format.js";
 import { getSettings } from "../lib/settings.js";
 import { getMitTaskId } from "../lib/mit.js";
 import { startOfLocalDay } from "../lib/time.js";
-import { getCategories } from "../lib/categories.js";
+import { getCategories, deleteCategory } from "../lib/categories.js";
 import { buildCategoryFilterPicker } from "../lib/pickers.js";
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
@@ -107,4 +107,36 @@ export async function handleCategoryFilterCallback(ctx: Context) {
   const chatId = ctx.chat!.id.toString();
   const category = decodeURIComponent(m[1]);
   await renderCategoryTasks(ctx, chatId, category);
+}
+
+export async function handleCategoryDeleteAskCallback(ctx: Context) {
+  const data = ctx.callbackQuery?.data;
+  const m = data?.match(/^catdel:(.+)$/);
+  if (!m) return;
+
+  await ctx.answerCallbackQuery();
+  const category = decodeURIComponent(m[1]);
+  const kb = new InlineKeyboard()
+    .text("بله، حذفش کن", `catdelyes:${m[1]}`)
+    .text("انصراف", "catdelno");
+  await ctx.reply(`دسته «${category}» حذف بشه؟ تسک‌هاش می‌مونن، فقط بی‌دسته میشن.`, { reply_markup: kb });
+}
+
+export async function handleCategoryDeleteConfirmCallback(ctx: Context) {
+  const data = ctx.callbackQuery?.data;
+
+  if (data === "catdelno") {
+    await ctx.answerCallbackQuery();
+    await ctx.editMessageText("باشه، لغو شد.");
+    return;
+  }
+
+  const m = data?.match(/^catdelyes:(.+)$/);
+  if (!m) return;
+
+  await ctx.answerCallbackQuery();
+  const chatId = ctx.chat!.id.toString();
+  const category = decodeURIComponent(m[1]);
+  const count = await deleteCategory(chatId, category);
+  await ctx.editMessageText(`🗑 دسته «${category}» حذف شد (${count} تسک بی‌دسته شد).`);
 }

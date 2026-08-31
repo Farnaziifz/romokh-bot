@@ -7,7 +7,15 @@ import { addTaskConversation } from "./conversations/addTaskConversation.js";
 import { editTaskConversation } from "./conversations/editTaskConversation.js";
 import { settingsConversation } from "./conversations/settingsConversation.js";
 import { quickAdd } from "./handlers/quickAdd.js";
-import { listToday, listWeek, listAll, listByCategory, handleCategoryFilterCallback } from "./handlers/listTasks.js";
+import {
+  listToday,
+  listWeek,
+  listAll,
+  listByCategory,
+  handleCategoryFilterCallback,
+  handleCategoryDeleteAskCallback,
+  handleCategoryDeleteConfirmCallback,
+} from "./handlers/listTasks.js";
 import { handleDoneCallback } from "./handlers/doneCallback.js";
 import { doneCommand } from "./handlers/doneCommand.js";
 import { deleteCommand, handleUndoCallback, handleDeleteButtonCallback } from "./handlers/deleteTask.js";
@@ -74,6 +82,8 @@ bot.on("callback_query:data", async (ctx, next) => {
   if (data.startsWith("mit:")) return handleMitCallback(ctx);
   if (data.startsWith("taskdel:")) return handleDeleteButtonCallback(ctx);
   if (data.startsWith("catpick:")) return handleCategoryFilterCallback(ctx);
+  if (data.startsWith("catdelyes:") || data === "catdelno") return handleCategoryDeleteConfirmCallback(ctx);
+  if (data.startsWith("catdel:")) return handleCategoryDeleteAskCallback(ctx);
   if (data.startsWith("taskedit:")) {
     const id = Number(data.replace("taskedit:", ""));
     await ctx.answerCallbackQuery();

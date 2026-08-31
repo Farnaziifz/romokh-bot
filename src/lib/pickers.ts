@@ -19,7 +19,10 @@ export function buildPriorityPicker(): InlineKeyboard {
 
 export function buildCategoryFilterPicker(categories: string[]): InlineKeyboard {
   const kb = new InlineKeyboard();
-  categories.forEach((cat) => kb.text(cat, `catpick:${encodeURIComponent(cat)}`).row());
+  categories.forEach((cat) => {
+    const enc = encodeURIComponent(cat);
+    kb.text(cat, `catpick:${enc}`).text("🗑", `catdel:${enc}`).row();
+  });
   return kb;
 }
 
