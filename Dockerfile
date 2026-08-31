@@ -4,4 +4,4 @@ COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
 RUN npm run build
-CMD ["node", "dist/bot.js"]
+CMD ["sh", "-c", "node dist/lib/migrate.js && node dist/bot.js"]
